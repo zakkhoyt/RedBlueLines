@@ -5,6 +5,7 @@
 //  Created by Zakk Hoyt on 1/17/16.
 //  Copyright © 2016 Zakk Hoyt. All rights reserved.
 //
+//  Inspired by reddit post: https://www.reddit.com/r/math/comments/41cmkx/an_interesting_geometric_lines_game/
 
 import UIKit
 
