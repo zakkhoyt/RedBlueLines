@@ -130,12 +130,11 @@ struct RBLine {
 
                     // http://stackoverflow.com/questions/21996401/determine-if-cgpath-cgcontext-intersect-with-cgpoint
                     //                ( x1B ≤ x1A ≤ x2B OR x1B ≤ x2A ≤ x2B )
-                    //
                     //                AND
-                    //
                     //                ( y1B ≤ y1A ≤ y2B OR y1B ≤ y2A ≤ y2B )
                     
-                    if (x1B <= x1A && x1A <= x2B || x1B <= x2A && x2A <= x2B) && ( y1B <= y1A && y1A <= y2B || y1B <= y2A && y2A <= y2B ) {
+                    if (x1B <= x1A && x1A <= x2B || x1B <= x2A && x2A <= x2B) &&
+                        ( y1B <= y1A && y1A <= y2B || y1B <= y2A && y2A <= y2B ) {
                         // Lines intersect 
                         currentLineValid = false
                         return
