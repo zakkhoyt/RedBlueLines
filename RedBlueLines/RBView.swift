@@ -114,30 +114,26 @@ struct RBLine {
     
     
     func validateLines() {
+        // only check after we have 3 or more lines to compare against
         if lines.count >= 3 {
-
-            
             if let A = currentLine {
-                
                 let x1A: CGFloat = min(A.startPoint.x, A.endPoint.x)
                 let x2A: CGFloat = x1A == A.startPoint.x ? A.endPoint.x : A.startPoint.x
-                
                 let y1A: CGFloat = min(A.startPoint.y, A.endPoint.y)
                 let y2A: CGFloat = y1A == A.startPoint.y ? A.endPoint.y : A.startPoint.y
                 
                 for B in lines {
                     let x1B: CGFloat = min(B.startPoint.x, B.endPoint.x)
                     let x2B: CGFloat = x1B == B.startPoint.x ? B.endPoint.x : B.startPoint.x
-                    
                     let y1B: CGFloat = min(B.startPoint.y, B.endPoint.y)
                     let y2B: CGFloat = y1B == B.startPoint.y ? B.endPoint.y : B.startPoint.y
 
+                    // http://stackoverflow.com/questions/21996401/determine-if-cgpath-cgcontext-intersect-with-cgpoint
                     //                ( x1B ≤ x1A ≤ x2B OR x1B ≤ x2A ≤ x2B )
                     //
                     //                AND
                     //
                     //                ( y1B ≤ y1A ≤ y2B OR y1B ≤ y2A ≤ y2B )
-                    
                     
                     if (x1B <= x1A && x1A <= x2B || x1B <= x2A && x2A <= x2B) && ( y1B <= y1A && y1A <= y2B || y1B <= y2A && y2A <= y2B ) {
                         // Lines intersect 
@@ -148,9 +144,12 @@ struct RBLine {
                 currentLineValid = true
                 return
             }
+            
+            // Default for 3 or more lines
             currentLineValid = false
             
         } else {
+            // Default for less than 3 lines
             currentLineValid = true
         }
     }
