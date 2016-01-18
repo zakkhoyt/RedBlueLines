@@ -41,42 +41,14 @@ struct RBLine {
     var currentLine: RBLine? = nil
     var currentLineValid: Bool = true
     var lines: [RBLine] = []
+    
+    var gameStarted:(()->Void)!
+    var gameScored:(()->Void)!
+    var gameReset:(()->Void)!
 
-
-    @IBInspectable var cornerRadius: CGFloat = 0 {
-        didSet {
-            layer.cornerRadius = cornerRadius
-            layer.masksToBounds = cornerRadius > 0
-        }
-    }
-    @IBInspectable var borderWidth: CGFloat = 0 {
-        didSet {
-            layer.borderWidth = borderWidth
-        }
-    }
-    @IBInspectable var borderColor: UIColor? {
-        didSet {
-            layer.borderColor = borderColor?.CGColor
-        }
-    }
-    
-    
-    override func prepareForInterfaceBuilder() {
-        setNeedsDisplay()  // Causes drawRect to be called soon
-    }
-    
     
     override func drawRect(rect: CGRect) {
-        ib()
         drawLines()
-    }
-    
-    
-    func ib() {
-        layer.borderColor = borderColor?.CGColor
-        layer.borderWidth = borderWidth
-        layer.cornerRadius = cornerRadius
-        
     }
     
     func drawLines() {
@@ -112,20 +84,43 @@ struct RBLine {
         // background (valid)
         backgroundColor = currentLineValid ? UIColor.greenColor() : UIColor.redColor()
     }
+
+
+
     
-    
+    // RULES: Start with 3 line segments in any configuration you'd like.
+    // From here on out, you may add line segments to the path but only if they
+    // cross a line segment of opposite color and not one of the same lines 
+    // (for instance, if you need to draw a red line segment, it MUST cross a blue one, 
+    // and MUST NOT cross another red one)
     func validateLines() {
         // only check after we have 3 or more lines to compare against
-        if lines.count > 3 {
+        if lines.count >= 3 {
             if let cl = currentLine {
+                
+                var crossSameColorCount = 0
+                var crossOppColorCount = 0
+                
                 for i in 0..<lines.count - 1 {
                     let l = lines[i]
-                    if doIntersect(cl.startPoint, q1: cl.endPoint, p2: l.startPoint, q2: l.endPoint) {
-                        currentLineValid = false
-                        return
+
+                    if l.type == cl.type {
+                        if doIntersect(cl.startPoint, cl.endPoint, l.startPoint, l.endPoint) {
+                            crossSameColorCount++
+                        }
+                    } else {
+                        if doIntersect(cl.startPoint, cl.endPoint, l.startPoint, l.endPoint) {
+                            crossOppColorCount++
+                        }
                     }
                 }
-                currentLineValid = true
+                
+                print("same: \(crossSameColorCount) opp: \(crossOppColorCount)")
+                if crossOppColorCount > 0 && crossSameColorCount == 0 {
+                    currentLineValid = true
+                } else {
+                    currentLineValid = false
+                }
                 return
             }
             
@@ -142,7 +137,7 @@ struct RBLine {
     // Given three colinear points p, q, r, the function checks if
     // point q lies on line segment 'pr'
 
-    func onSegment(p: CGPoint, q: CGPoint, r: CGPoint) -> Bool {
+    func onSegment(p: CGPoint, _ q: CGPoint, _ r: CGPoint) -> Bool {
         if (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) && q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y)) {
             return true
         } else {
@@ -157,7 +152,7 @@ struct RBLine {
     // 1 --> Clockwise
     // 2 --> Counterclockwise
     
-    func orientation(p: CGPoint, q: CGPoint, r: CGPoint) -> UInt {
+    func orientation(p: CGPoint, _ q: CGPoint, _ r: CGPoint) -> UInt {
         let val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
         if val == 0 {
             return 0
@@ -168,14 +163,13 @@ struct RBLine {
     
     // The main function that returns true if line segment 'p1q1'
     // and 'p2q2' intersect.
-    func doIntersect(p1: CGPoint, q1: CGPoint, p2: CGPoint, q2: CGPoint) -> Bool {
+    func doIntersect(p1: CGPoint, _ q1: CGPoint, _ p2: CGPoint, _ q2: CGPoint) -> Bool {
         // Find the four orientations needed for general and
         // special cases
-        let o1 = orientation(p1, q: q1, r: p2)
-        let o2 = orientation(p1, q: q1, r: q2)
-        let o3 = orientation(p2, q: q2, r: p1)
-        let o4 = orientation(p2, q: q2, r: q1)
-        
+        let o1 = orientation(p1, q1, p2)
+        let o2 = orientation(p1, q1, q2)
+        let o3 = orientation(p2, q2, p1)
+        let o4 = orientation(p2, q2, q1)
         // General case
         if o1 != o2 && o3 != o4 {
             return true
@@ -183,22 +177,22 @@ struct RBLine {
         
         // Special Cases
         // p1, q1 and p2 are colinear and p2 lies on segment p1q1
-        if (o1 == 0 && onSegment(p1, q: p2, r: q1)) {
+        if (o1 == 0 && onSegment(p1, p2, q1)) {
             return true
         }
         
         // p1, q1 and p2 are colinear and q2 lies on segment p1q1
-        if (o2 == 0 && onSegment(p1, q: q2, r: q1)) {
+        if (o2 == 0 && onSegment(p1, q2, q1)) {
             return true
         }
         
         // p2, q2 and p1 are colinear and p1 lies on segment p2q2
-        if (o3 == 0 && onSegment(p2, q: p1, r: q2)){
+        if (o3 == 0 && onSegment(p2, p1, q2)){
             return true
         }
         
         // p2, q2 and q1 are colinear and q1 lies on segment p2q2
-        if (o4 == 0 && onSegment(p2, q: q1, r: q2)){
+        if (o4 == 0 && onSegment(p2, q1, q2)){
             return true
         }
         
@@ -206,12 +200,12 @@ struct RBLine {
         return false
     }
     
-    
-    
-    
-    
     override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
 
+        if lines.count == 0 {
+            gameStarted()
+        }
+        
         currentLine = RBLine()
         // Color
         if currentLineWhite {
@@ -230,6 +224,7 @@ struct RBLine {
             currentLine?.startPoint = currentLineStartPoint
         }
 
+        validateLines()
         setNeedsDisplay()
     }
     
@@ -253,6 +248,7 @@ struct RBLine {
                 lines.append(currentLine)
                 currentLineStartPoint = currentLine.endPoint
                 currentLineWhite = !currentLineWhite
+                gameScored()
             } else {
                 self.currentLine = nil
             }
@@ -261,9 +257,20 @@ struct RBLine {
         validateLines()
         setNeedsDisplay()
         
-        backgroundColor = UIColor.lightGrayColor()
+        backgroundColor = UIColor.darkGrayColor()
         
     }
     
-    
+    func reset() {
+        currentLineColor = UIColor.whiteColor()
+        currentLineStartPoint = CGPointZero
+        currentLineWhite = false
+        currentLine = nil
+        currentLineValid = true
+        lines.removeAll()
+        setNeedsDisplay()
+        
+        backgroundColor = UIColor.darkGrayColor()
+        gameReset()
+    }
 }
