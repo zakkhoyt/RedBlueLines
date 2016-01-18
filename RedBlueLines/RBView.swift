@@ -99,7 +99,7 @@ struct RBLine {
             }
         }
         
-        // past lines
+        // paste lines
         for line in lines {
             let components: [CGFloat] = line.type == .White ? [1.0, 1.0, 1.0, 1.0] : [0.0, 0.0, 0.0, 1.0]
             let color = CGColorCreate(colorSpace, components)
@@ -116,27 +116,11 @@ struct RBLine {
     
     func validateLines() {
         // only check after we have 3 or more lines to compare against
-        if lines.count >= 3 {
-            if let A = currentLine {
-                let x1A: CGFloat = min(A.startPoint.x, A.endPoint.x)
-                let x2A: CGFloat = x1A == A.startPoint.x ? A.endPoint.x : A.startPoint.x
-                let y1A: CGFloat = min(A.startPoint.y, A.endPoint.y)
-                let y2A: CGFloat = y1A == A.startPoint.y ? A.endPoint.y : A.startPoint.y
-                
-                for B in lines {
-                    let x1B: CGFloat = min(B.startPoint.x, B.endPoint.x)
-                    let x2B: CGFloat = x1B == B.startPoint.x ? B.endPoint.x : B.startPoint.x
-                    let y1B: CGFloat = min(B.startPoint.y, B.endPoint.y)
-                    let y2B: CGFloat = y1B == B.startPoint.y ? B.endPoint.y : B.startPoint.y
-
-                    // http://stackoverflow.com/questions/21996401/determine-if-cgpath-cgcontext-intersect-with-cgpoint
-                    //                ( x1B ≤ x1A ≤ x2B OR x1B ≤ x2A ≤ x2B )
-                    //                AND
-                    //                ( y1B ≤ y1A ≤ y2B OR y1B ≤ y2A ≤ y2B )
-                    
-                    if (x1B <= x1A && x1A <= x2B || x1B <= x2A && x2A <= x2B) &&
-                        ( y1B <= y1A && y1A <= y2B || y1B <= y2A && y2A <= y2B ) {
-                        // Lines intersect 
+        if lines.count > 3 {
+            if let cl = currentLine {
+                for i in 0..<lines.count - 1 {
+                    let l = lines[i]
+                    if doIntersect(cl.startPoint, q1: cl.endPoint, p2: l.startPoint, q2: l.endPoint) {
                         currentLineValid = false
                         return
                     }
@@ -147,12 +131,84 @@ struct RBLine {
             
             // Default for 3 or more lines
             currentLineValid = false
-            
         } else {
             // Default for less than 3 lines
             currentLineValid = true
         }
     }
+    
+    
+    
+    // Given three colinear points p, q, r, the function checks if
+    // point q lies on line segment 'pr'
+
+    func onSegment(p: CGPoint, q: CGPoint, r: CGPoint) -> Bool {
+        if (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) && q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y)) {
+            return true
+        } else {
+            return false
+        }
+    }
+
+
+    // To find orientation of ordered triplet (p, q, r).
+    // The function returns following values
+    // 0 --> p, q and r are colinear
+    // 1 --> Clockwise
+    // 2 --> Counterclockwise
+    
+    func orientation(p: CGPoint, q: CGPoint, r: CGPoint) -> UInt {
+        let val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
+        if val == 0 {
+            return 0
+        } else {
+            return val > 0 ? 1 : 2
+        }
+    }
+    
+    // The main function that returns true if line segment 'p1q1'
+    // and 'p2q2' intersect.
+    func doIntersect(p1: CGPoint, q1: CGPoint, p2: CGPoint, q2: CGPoint) -> Bool {
+        // Find the four orientations needed for general and
+        // special cases
+        let o1 = orientation(p1, q: q1, r: p2)
+        let o2 = orientation(p1, q: q1, r: q2)
+        let o3 = orientation(p2, q: q2, r: p1)
+        let o4 = orientation(p2, q: q2, r: q1)
+        
+        // General case
+        if o1 != o2 && o3 != o4 {
+            return true
+        }
+        
+        // Special Cases
+        // p1, q1 and p2 are colinear and p2 lies on segment p1q1
+        if (o1 == 0 && onSegment(p1, q: p2, r: q1)) {
+            return true
+        }
+        
+        // p1, q1 and p2 are colinear and q2 lies on segment p1q1
+        if (o2 == 0 && onSegment(p1, q: q2, r: q1)) {
+            return true
+        }
+        
+        // p2, q2 and p1 are colinear and p1 lies on segment p2q2
+        if (o3 == 0 && onSegment(p2, q: p1, r: q2)){
+            return true
+        }
+        
+        // p2, q2 and q1 are colinear and q1 lies on segment p2q2
+        if (o4 == 0 && onSegment(p2, q: q1, r: q2)){
+            return true
+        }
+        
+        // Doesn't fall in any of the above cases
+        return false
+    }
+    
+    
+    
+    
     
     override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
 
